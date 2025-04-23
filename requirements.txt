@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+torch
+diffusers
+transformers
+accelerate
+minio
+python-dotenv
+sentencepiece
+imageio
+imageio-ffmpeg
