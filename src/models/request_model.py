@@ -14,10 +14,9 @@ class GenerationRequest(BaseModel):
     seed: Optional[int] = Field(None, description="Random seed for reproducible output.")
     
 class GenerationRequestImage(BaseModel):
-    image_url: str = Field(..., description="Input image usead as base for the video.")
+    image_url: str = Field(..., description="Input image used as base for the video.")
     prompt: str = Field(..., description="Text prompt describing the video to generate.")
     negative_prompt: Optional[str] = Field(None, description="Things to avoid in the generation.")
-    image_url: Optional[str] = Field(..., description="Things to avoid in the generation.")
     width: Optional[int] = Field(704, ge=64, le=1280, description="Video width (multiple of 8).")
     height: Optional[int] = Field(480, ge=64, le=720, description="Video height (multiple of 8).")
     num_frames: Optional[int] = Field(161, ge=1, le=300, description="Number of frames to generate.")

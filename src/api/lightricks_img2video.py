@@ -2,37 +2,37 @@ import os
 import uuid
 import torch
 import logging
-from fastapi import APIRouter, HTTPException, Form
+import gc
+from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from diffusers import LTXImageToVideoPipeline
 from minio.error import S3Error
 from diffusers.utils import export_to_video, load_image
 from src.utils.misc import upload_to_minio, cleanup_temp_files
 from src.models.request_model import GenerationRequestImage
+from src.models.model_manager import get_model_manager
 
 router = APIRouter(prefix="/lightricks-api")
 logger = logging.getLogger(__name__)
 
+
 @router.post("/img2video")
 def generate_img2video(req: GenerationRequestImage):
-    global pipe
-
-    logger.info("Loading LTX Image-to-Video Pipeline...")
-    pipe = LTXImageToVideoPipeline.from_pretrained("Lightricks/LTX-Video", torch_dtype=torch.bfloat16)
-    pipe.to("cuda")
-    logger.info("Image-to-video model loaded successfully.")
-
+    manager = get_model_manager()
     filename = None
-    result = None
-    frames = None
-    generator = None
-
+    
     try:
-        logger.info("Generating video from image...")
-        logger.info(f"Loading image from URL: {req.image_url}")
+        if not torch.cuda.is_available() and manager.device == "cuda":
+            raise HTTPException(status_code=503, detail="CUDA not available")
+        
+        logger.info(f"Generating video from image: {req.image_url[:50]}...")
+        pipe = manager.get_img2video_pipe()
+        
         image = load_image(req.image_url)
+        
+        generator = None
         if req.seed and req.seed > 0:
-            generator = torch.Generator(device="cuda").manual_seed(req.seed)
+            generator = torch.Generator(device=manager.device).manual_seed(req.seed)
         
         result = pipe(
             image=image,
@@ -56,16 +56,17 @@ def generate_img2video(req: GenerationRequestImage):
         return {"message": "Video generated and uploaded (img2video)", "url": url}
 
     except S3Error as e:
+        logger.error(f"MinIO error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"MinIO error: {str(e)}")
+    except torch.cuda.OutOfMemoryError:
+        logger.error("GPU out of memory")
+        gc.collect()
+        torch.cuda.empty_cache()
+        raise HTTPException(status_code=507, detail="GPU out of memory")
     except Exception as e:
         logger.error(f"Unhandled exception occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         cleanup_temp_files(filename)
-        del result
-        del frames
-        del generator
-        del pipe
-        import gc
         gc.collect()
         torch.cuda.empty_cache()
