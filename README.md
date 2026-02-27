@@ -55,6 +55,7 @@ Configure the following environment variables in `.env`:
 | `MINIO_SECRET_KEY` | MinIO secret key | Required |
 | `MINIO_BUCKET` | Storage bucket name | Required |
 | `MINIO_URL` | Public MinIO URL | Required |
+| `MINIO_PREFIX` | Storage path prefix | `generated-videos/` |
 | `MINIO_REGION` | MinIO region | `us-east-1` |
 | `MODEL_ID` | HuggingFace model ID | `Lightricks/LTX-Video` |
 | `DEFAULT_WIDTH` | Default video width | `704` |
@@ -189,9 +190,11 @@ image-video-generation/
 
 ### Architecture Improvements
 - **Singleton Pattern**: Implemented `ModelManager` for efficient model loading (models now load once)
-- **Thread Safety**: Added proper locking for model management
-- **Resource Management**: Improved GPU memory handling with better cleanup
+- **Thread Safety**: Added proper locking for model management to prevent CUDA OOM on concurrent requests
+- **Resource Management**: Improved GPU memory handling with better cleanup, especially in batch generation loops
 - **Environment Validation**: Added startup validation for required environment variables
+- **Dependency Pinning**: Pinned exact or minimum versions in `requirements.txt` for stability
+- **Storage Configuration**: Extracted `MINIO_PREFIX` to allow customizing the MinIO storage path
 
 ### Error Handling
 - CUDA availability checking with graceful fallback
@@ -207,6 +210,7 @@ image-video-generation/
 
 ### Code Quality
 - Removed code duplication between endpoints
+- Adhered strictly to PEP 8 standard conventions (e.g. proper import ordering)
 - Added proper type hints
 - Improved logging structure
 - Cleaner resource cleanup
