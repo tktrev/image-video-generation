@@ -33,11 +33,12 @@ def upload_to_minio(filename: str) -> str:
     client = get_minio_client()
     bucket = os.getenv("MINIO_BUCKET")
     minio_url = os.getenv("MINIO_URL")
+    prefix = os.getenv("MINIO_PREFIX", "generated-videos/")
     
     if not bucket or not minio_url:
         raise ValueError("MINIO_BUCKET or MINIO_URL not configured")
     
-    s3_key = f"generated-videos/{filename}"
+    s3_key = f"{prefix}{filename}"
     
     try:
         with open(filename, "rb") as f:

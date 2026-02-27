@@ -12,6 +12,7 @@ class Settings:
     MINIO_SECRET_KEY: Optional[str] = os.getenv("MINIO_SECRET_KEY")
     MINIO_BUCKET: Optional[str] = os.getenv("MINIO_BUCKET")
     MINIO_URL: Optional[str] = os.getenv("MINIO_URL")
+    MINIO_PREFIX: str = os.getenv("MINIO_PREFIX", "generated-videos/")
     MODEL_ID: str = os.getenv("MODEL_ID", "Lightricks/LTX-Video")
     DEFAULT_WIDTH: int = int(os.getenv("DEFAULT_WIDTH", "704"))
     DEFAULT_HEIGHT: int = int(os.getenv("DEFAULT_HEIGHT", "480"))

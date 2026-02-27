@@ -1,4 +1,5 @@
 import os
+import gc
 import torch
 import logging
 from functools import lru_cache
@@ -32,32 +33,34 @@ class ModelManager:
     
     def get_txt2video_pipe(self, model_id: str = "Lightricks/LTX-Video") -> LTXPipeline:
         if self._txt2video_pipe is None:
-            logger.info(f"Loading LTX Text-to-Video Pipeline on {self.device}...")
-            self._txt2video_pipe = LTXPipeline.from_pretrained(
-                model_id, 
-                torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32
-            )
-            self._txt2video_pipe.to(self.device)
-            logger.info("Text-to-Video model loaded successfully.")
+            with self._lock:
+                if self._txt2video_pipe is None:
+                    logger.info(f"Loading LTX Text-to-Video Pipeline on {self.device}...")
+                    self._txt2video_pipe = LTXPipeline.from_pretrained(
+                        model_id, 
+                        torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32
+                    )
+                    self._txt2video_pipe.to(self.device)
+                    logger.info("Text-to-Video model loaded successfully.")
         return self._txt2video_pipe
     
     def get_img2video_pipe(self, model_id: str = "Lightricks/LTX-Video") -> LTXImageToVideoPipeline:
         if self._img2video_pipe is None:
-            logger.info(f"Loading LTX Image-to-Video Pipeline on {self.device}...")
-            self._img2video_pipe = LTXImageToVideoPipeline.from_pretrained(
-                model_id, 
-                torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32
-            )
-            self._img2video_pipe.to(self.device)
-            logger.info("Image-to-Video model loaded successfully.")
+            with self._lock:
+                if self._img2video_pipe is None:
+                    logger.info(f"Loading LTX Image-to-Video Pipeline on {self.device}...")
+                    self._img2video_pipe = LTXImageToVideoPipeline.from_pretrained(
+                        model_id, 
+                        torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32
+                    )
+                    self._img2video_pipe.to(self.device)
+                    logger.info("Image-to-Video model loaded successfully.")
         return self._img2video_pipe
     
     def clear_cache(self):
         if self._txt2video_pipe:
-            del self._txt2video_pipe
             self._txt2video_pipe = None
         if self._img2video_pipe:
-            del self._img2video_pipe
             self._img2video_pipe = None
         torch.cuda.empty_cache()
         gc.collect()
@@ -68,8 +71,6 @@ class ModelManager:
             return self._txt2video_pipe is not None
         return self._img2video_pipe is not None
 
-
-import gc
 
 model_manager = ModelManager()
 

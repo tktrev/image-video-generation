@@ -72,7 +72,7 @@ def generate_txt2video(req: GenerationRequest):
 @router.post("/txt2video/batch")
 def generate_txt2video_batch(req: GenerationRequest):
     manager = get_model_manager()
-    filename = None
+    filenames_to_cleanup = []
     
     try:
         if not torch.cuda.is_available() and manager.device == "cuda":
@@ -101,6 +101,7 @@ def generate_txt2video_batch(req: GenerationRequest):
         for idx, frames in enumerate(result.frames):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"output_{timestamp}_{uuid.uuid4().hex[:8]}_batch_{idx}.mp4"
+            filenames_to_cleanup.append(filename)
             export_to_video(frames, filename, fps=req.fps)
             url = upload_to_minio(filename)
             urls.append(url)
@@ -120,6 +121,7 @@ def generate_txt2video_batch(req: GenerationRequest):
         logger.error(f"Unhandled exception occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        cleanup_temp_files(filename)
+        for f in filenames_to_cleanup:
+            cleanup_temp_files(f)
         gc.collect()
         torch.cuda.empty_cache()
